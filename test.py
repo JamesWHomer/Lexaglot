@@ -3,11 +3,13 @@ import requests
 exercise_data = {
     "type": "matching",
     "data": {
-        "guest": "gäst",
-        "airplane": "flygplan",
-        "guide": "guide",
-        "suitcase": "resväska",
-        "Iceland": "island"
+        "pairs": {
+            "guest": "gäst",
+            "airplane": "flygplan",
+            "guide": "guide",
+            "suitcase": "resväska",
+            "Iceland": "island"
+        }
     }
 }
 

@@ -1,7 +1,7 @@
 from motor.motor_asyncio import AsyncIOMotorClient
 from fastapi import HTTPException
 from models import Exercise, ExerciseAttempt
-from auth_models import UserInDB
+from auth_models import UserInDB, RefreshToken
 import logging
 from bson import ObjectId
 import os
@@ -24,12 +24,15 @@ db = client.lexaglot
 exercises_collection = db.exercises
 users_collection = db.users
 attempts_collection = db.attempts
+refresh_tokens_collection = db.refresh_tokens
 
 async def connect_to_mongo():
     try:
         await client.admin.command('ping')
         # Create unique index on username
         await users_collection.create_index("username", unique=True)
+        # Create TTL index for refresh tokens
+        await refresh_tokens_collection.create_index("expires_at", expireAfterSeconds=0)
         logger.info("Successfully connected to MongoDB")
     except Exception as e:
         logger.error(f"Error connecting to MongoDB: {e}")
@@ -88,3 +91,19 @@ async def get_user_attempts(user_id: str, language: str):
     for attempt in attempts:
         attempt["_id"] = str(attempt["_id"])
     return attempts 
+
+async def store_refresh_token(refresh_token: RefreshToken):
+    token_dict = refresh_token.model_dump()
+    result = await refresh_tokens_collection.insert_one(token_dict)
+    token_dict["_id"] = str(result.inserted_id)
+    return token_dict
+
+async def get_refresh_token(token: str):
+    return await refresh_tokens_collection.find_one({"token": token, "blacklisted": False})
+
+async def blacklist_refresh_token(token: str):
+    result = await refresh_tokens_collection.update_one(
+        {"token": token},
+        {"$set": {"blacklisted": True}}
+    )
+    return result.modified_count > 0 
