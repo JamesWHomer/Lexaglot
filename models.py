@@ -3,7 +3,7 @@ from typing import Dict, List, Union, Optional, Any
 from datetime import datetime
 
 class MatchingExercise(BaseModel):
-    data: Dict[str, str]
+    pairs: Dict[str, str]
     model_config = {"extra": "allow"}
 
 class TranslateExercise(BaseModel):
