@@ -18,7 +18,7 @@ if not SECRET_KEY:
     raise Exception("JWT_SECRET_KEY environment variable is not set")
 
 ALGORITHM = "HS256"
-ACCESS_TOKEN_EXPIRE_MINUTES = 30
+ACCESS_TOKEN_EXPIRE_MINUTES = 1
 REFRESH_TOKEN_EXPIRE_DAYS = 30
 
 pwd_context = CryptContext(schemes=["bcrypt"], deprecated="auto")
@@ -102,7 +102,9 @@ async def verify_refresh_token(token: str):
     user = await database.users_collection.find_one({"_id": ObjectId(stored_token["user_id"])})
     if not user:
         return None
-        
+    
+    # Convert ObjectId to string before validation
+    user["_id"] = str(user["_id"])    
     return UserInDB.model_validate(user)
 
 async def get_current_active_user(current_user: UserInDB = Depends(get_current_user)):
