@@ -1,11 +1,11 @@
-from fastapi import FastAPI, Depends
+from fastapi import FastAPI, Depends, HTTPException
 from contextlib import asynccontextmanager
 from models import Exercise, ExerciseAttempt
 import database
 from auth_router import router as auth_router
 from auth import get_current_active_user
 from auth_models import User
-from typing import Dict, Any
+from typing import Dict, Any, Optional
 from datetime import datetime
 
 @asynccontextmanager
@@ -67,3 +67,36 @@ async def get_user_attempts(
 ):
     """Get all of a user's exercise attempts for a specific language"""
     return await database.get_user_attempts(str(current_user.id), language)
+
+@app.get("/tokenbank/{language}")
+async def get_tokenbank(
+    language: str,
+    current_user: User = Depends(get_current_active_user)
+) -> Dict[str, int]:
+    """Get the user's token bank for a specific language"""
+    return await database.get_user_tokenbank(str(current_user.id), language)
+
+@app.put("/tokenbank/{language}")
+async def update_tokenbank(
+    language: str,
+    tokens: Dict[str, int],
+    current_user: User = Depends(get_current_active_user)
+):
+    """Update the entire token bank for a specific language"""
+    success = await database.set_user_tokenbank(str(current_user.id), language, tokens)
+    if not success:
+        raise HTTPException(status_code=500, detail="Failed to update token bank")
+    return {"status": "success"}
+
+@app.patch("/tokenbank/{language}/{token}")
+async def update_token(
+    language: str,
+    token: str,
+    count: int,
+    current_user: User = Depends(get_current_active_user)
+):
+    """Update the count for a specific token"""
+    success = await database.update_token_count(str(current_user.id), language, token, count)
+    if not success:
+        raise HTTPException(status_code=500, detail="Failed to update token count")
+    return {"status": "success"}
