@@ -25,6 +25,7 @@ exercises_collection = db.exercises
 users_collection = db.users
 attempts_collection = db.attempts
 refresh_tokens_collection = db.refresh_tokens
+tokenbank = db.tokenbank
 
 async def connect_to_mongo():
     try:
@@ -107,3 +108,59 @@ async def blacklist_refresh_token(token: str):
         {"$set": {"blacklisted": True}}
     )
     return result.modified_count > 0 
+
+async def get_user_tokenbank(user_id: str, language: str) -> Dict[str, int]:
+    """
+    Retrieve the tokenbank for a specific user and language
+    
+    Args:
+        user_id (str): The ID of the user
+        language (str): The language code
+        
+    Returns:
+        Dict[str, int]: A dictionary mapping tokens to their counts
+    """
+    result = await tokenbank.find_one({"user_id": user_id, "language": language})
+    if result:
+        # Remove MongoDB-specific fields and return only the tokens
+        return result.get("tokens", {})
+    return {} 
+
+async def set_user_tokenbank(user_id: str, language: str, tokens: Dict[str, int]) -> bool:
+    """
+    Set or update the tokenbank for a specific user and language
+    
+    Args:
+        user_id (str): The ID of the user
+        language (str): The language code
+        tokens (Dict[str, int]): Dictionary mapping tokens to their counts
+        
+    Returns:
+        bool: True if the operation was successful
+    """
+    result = await tokenbank.update_one(
+        {"user_id": user_id, "language": language},
+        {"$set": {"tokens": tokens}},
+        upsert=True
+    )
+    return result.acknowledged 
+
+async def update_token_count(user_id: str, language: str, token: str, count: int) -> bool:
+    """
+    Update or set the count for a specific token in user's tokenbank
+    
+    Args:
+        user_id (str): The ID of the user
+        language (str): The language code
+        token (str): The token to update
+        count (int): The new count value
+        
+    Returns:
+        bool: True if the operation was successful
+    """
+    result = await tokenbank.update_one(
+        {"user_id": user_id, "language": language},
+        {"$set": {f"tokens.{token}": count}},
+        upsert=True
+    )
+    return result.acknowledged 
