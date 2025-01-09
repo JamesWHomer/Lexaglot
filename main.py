@@ -76,27 +76,27 @@ async def get_tokenbank(
     """Get the user's token bank for a specific language"""
     return await database.get_user_tokenbank(str(current_user.id), language)
 
-@app.put("/tokenbank/{language}")
-async def update_tokenbank(
-    language: str,
-    tokens: Dict[str, int],
-    current_user: User = Depends(get_current_active_user)
-):
-    """Update the entire token bank for a specific language"""
-    success = await database.set_user_tokenbank(str(current_user.id), language, tokens)
-    if not success:
-        raise HTTPException(status_code=500, detail="Failed to update token bank")
-    return {"status": "success"}
+# @app.put("/tokenbank/{language}")
+# async def update_tokenbank(
+#     language: str,
+#     tokens: Dict[str, int],
+#     current_user: User = Depends(get_current_active_user)
+# ):
+#     """Update the entire token bank for a specific language"""
+#     success = await database.set_user_tokenbank(str(current_user.id), language, tokens)
+#     if not success:
+#         raise HTTPException(status_code=500, detail="Failed to update token bank")
+#     return {"status": "success"}
 
-@app.patch("/tokenbank/{language}/{token}")
-async def update_token(
-    language: str,
-    token: str,
-    count: int,
-    current_user: User = Depends(get_current_active_user)
-):
-    """Update the count for a specific token"""
-    success = await database.update_token_count(str(current_user.id), language, token, count)
-    if not success:
-        raise HTTPException(status_code=500, detail="Failed to update token count")
-    return {"status": "success"}
+# @app.patch("/tokenbank/{language}/{token}")
+# async def update_token(
+#     language: str,
+#     token: str,
+#     count: int,
+#     current_user: User = Depends(get_current_active_user)
+# ):
+#     """Update the count for a specific token"""
+#     success = await database.update_token_count(str(current_user.id), language, token, count)
+#     if not success:
+#         raise HTTPException(status_code=500, detail="Failed to update token count")
+#     return {"status": "success"}
