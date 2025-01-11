@@ -76,6 +76,13 @@ async def get_tokenbank(
     """Get the user's token bank for a specific language"""
     return await database.get_user_tokenbank(str(current_user.id), language)
 
+@app.get("/next_exercise")
+async def next_exercise(
+    language: str,
+    current_user: User = Depends(get_current_active_user)
+): 
+    return database.get_exercise_by_id('676f6768de36cfc42c3e7dcf')
+
 # @app.put("/tokenbank/{language}")
 # async def update_tokenbank(
 #     language: str,
