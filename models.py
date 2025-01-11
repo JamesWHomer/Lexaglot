@@ -14,9 +14,17 @@ class TranslateExercise(BaseModel):
     chunk_options: List[str]
     model_config = {"extra": "allow"}
 
+class FillBlankExercise(BaseModel):
+    input_language: str
+    output_language: str
+    input_sentence: str
+    correct_fills: List[str]
+    model_config = {"extra": "allow"}
+
 class Exercise(BaseModel):
     type: str
-    data: Union[MatchingExercise, TranslateExercise]
+    language: str
+    data: Union[MatchingExercise, TranslateExercise, FillBlankExercise]
     model_config = {"extra": "allow"}
 
 class ExerciseAttempt(BaseModel):
