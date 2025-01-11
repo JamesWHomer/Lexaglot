@@ -81,7 +81,7 @@ async def next_exercise(
     language: str,
     current_user: User = Depends(get_current_active_user)
 ): 
-    return database.get_exercise_by_id('676f6768de36cfc42c3e7dcf')
+    return await database.get_exercise_by_id('676f6768de36cfc42c3e7dcf') # Only temporary, will replace with cached exercise later
 
 # @app.put("/tokenbank/{language}")
 # async def update_tokenbank(

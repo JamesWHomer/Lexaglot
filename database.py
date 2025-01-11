@@ -51,7 +51,7 @@ async def create_exercise(exercise: Exercise):
     exercise_dict["_id"] = str(result.inserted_id)
     return exercise_dict
 
-async def get_exercise_by_id(id: str):
+async def get_exercise_by_id(id: str) -> Exercise:
     try:
         exercise = await exercises_collection.find_one({"_id": ObjectId(id)})
         if exercise:
