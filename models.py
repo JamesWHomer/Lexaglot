@@ -16,14 +16,20 @@ class TranslateExercise(BaseModel):
 
 class FillBlankExercise(BaseModel):
     input_language: str
-    output_language: str
-    input_sentence: str
+    input_sentence: str # Will be something like "Han {} james"
     correct_fills: List[str]
+    model_config = {"extra": "allow"}
+
+class AudioTranscribeExercise(BaseModel):
+    input_language: str
+    audio_url: str
+    chunk_options: List[str]
+    correct_sentences: List[str]
     model_config = {"extra": "allow"}
 
 class Exercise(BaseModel):
     type: str
-    language: str
+    language: str # The language the user is learning
     data: Union[MatchingExercise, TranslateExercise, FillBlankExercise]
     model_config = {"extra": "allow"}
 
