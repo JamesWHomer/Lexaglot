@@ -1,4 +1,4 @@
-from fastapi import FastAPI, Depends, HTTPException
+from fastapi import FastAPI, Depends, HTTPException, BackgroundTasks
 from contextlib import asynccontextmanager
 from models import Exercise, ExerciseAttempt
 import database
@@ -8,6 +8,8 @@ from auth_models import User
 from typing import Dict, Any, Optional
 from datetime import datetime
 import random 
+from generation import generate_exercise
+from recommendation import get_next_token
 
 @asynccontextmanager
 async def lifespan(app: FastAPI):
@@ -43,6 +45,7 @@ async def record_attempt(
     language: str,
     time_spent_ms: int,
     user_response: Any,
+    background_tasks: BackgroundTasks,
     current_user: User = Depends(get_current_active_user)
 ):
     """
@@ -50,6 +53,7 @@ async def record_attempt(
     - time_spent_ms: how long the exercise took in milliseconds
     - user_response: the raw response data from the app (format depends on exercise type)
     """
+    # Record the attempt
     attempt = ExerciseAttempt(
         user_id=str(current_user.id),
         exercise_id=exercise_id,
@@ -59,7 +63,27 @@ async def record_attempt(
         user_response=user_response
     )
     
-    return await database.record_attempt(attempt)
+    result = await database.record_attempt(attempt)
+    
+    # Get the current token for replenishment
+    token = await get_next_token(str(current_user.id), language)
+    if token:
+        # Count current cached exercises
+        cache_count = await database.count_cached_exercises(language, str(current_user.id), token)
+        
+        # Generate new exercises if we're below target (3)
+        exercises_needed = 3 - cache_count
+        if exercises_needed > 0:
+            for _ in range(exercises_needed):
+                background_tasks.add_task(
+                    database.cache_exercise,
+                    (await generate_exercise(language, token)).model_dump(),
+                    language,
+                    str(current_user.id),
+                    token
+                )
+    
+    return result
 
 @app.get("/user-attempts/{language}")
 async def get_user_attempts(
@@ -82,7 +106,28 @@ async def next_exercise(
     language: str,
     current_user: User = Depends(get_current_active_user)
 ): 
-    return await database.get_exercise_by_id(random.choice(['676f6768de36cfc42c3e7dcf', '676f721355bddf0ac8513ea6'])) # Only temporary, will replace with cached exercise later
+    # Get the next token for this user and language
+    token = await get_next_token(str(current_user.id), language)
+    if not token:
+        raise HTTPException(status_code=404, detail="No tokens available for practice")
+    
+    # Try to get a cached exercise
+    cached_exercise = await database.get_cached_exercise(language, str(current_user.id), token)
+    if cached_exercise:
+        return cached_exercise
+        
+    # If no cached exercise, generate one and cache it
+    exercise = await generate_exercise(language, token)
+    exercise_dict = exercise.model_dump()
+    
+    await database.cache_exercise(
+        exercise_dict,
+        language,
+        str(current_user.id),
+        token
+    )
+    
+    return exercise_dict
 
 # @app.put("/tokenbank/{language}")
 # async def update_tokenbank(
