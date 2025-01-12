@@ -6,7 +6,7 @@ import logging
 from bson import ObjectId
 import os
 from dotenv import load_dotenv
-from datetime import datetime
+from datetime import datetime, timedelta
 from typing import Dict
 
 logger = logging.getLogger("uvicorn")
@@ -26,6 +26,7 @@ users_collection = db.users
 attempts_collection = db.attempts
 refresh_tokens_collection = db.refresh_tokens
 tokenbank = db.tokenbank
+exercise_cache = db.exercise_cache
 
 async def connect_to_mongo():
     try:
@@ -164,3 +165,50 @@ async def update_token_count(user_id: str, language: str, token: str, count: int
         upsert=True
     )
     return result.acknowledged 
+
+async def cache_exercise(exercise: dict, language: str, user_id: str, token: str):
+    """
+    Cache a generated exercise for future use
+    """
+    exercise_doc = {
+        "exercise": exercise,
+        "language": language,
+        "user_id": user_id,
+        "token": token,
+        "created_at": datetime.utcnow(),
+        "used": False
+    }
+    await exercise_cache.insert_one(exercise_doc)
+
+async def get_cached_exercise(language: str, user_id: str, token: str):
+    """
+    Get the oldest unused exercise from the cache for specific user, language and token
+    """
+    # Find and mark the oldest unused exercise as used atomically
+    result = await exercise_cache.find_one_and_update(
+        {
+            "language": language,
+            "user_id": user_id,
+            "token": token,
+            "used": False
+        },
+        {"$set": {"used": True}},
+        sort=[("created_at", 1)],  # Get oldest first
+        return_document=True
+    )
+    
+    if result:
+        result["_id"] = str(result["_id"])
+        return result["exercise"]
+    return None
+
+async def count_cached_exercises(language: str, user_id: str, token: str) -> int:
+    """
+    Count unused cached exercises for a specific user, language and token
+    """
+    return await exercise_cache.count_documents({
+        "language": language,
+        "user_id": user_id,
+        "token": token,
+        "used": False
+    }) 
