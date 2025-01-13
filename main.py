@@ -118,7 +118,7 @@ async def next_exercise(
         
     # If no cached exercise, generate one and cache it
     exercise = await generate_exercise(language, token)
-    exercise_dict = exercise.model_dump()
+    exercise_dict = exercise.model_dump(by_alias=True)
     
     await database.cache_exercise(
         exercise_dict,
@@ -127,7 +127,8 @@ async def next_exercise(
         token
     )
     
-    return exercise_dict
+    # Return the exercise from the database to ensure proper serialization
+    return await database.get_exercise_by_id(exercise_dict["_id"])
 
 # @app.put("/tokenbank/{language}")
 # async def update_tokenbank(

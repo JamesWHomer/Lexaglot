@@ -168,17 +168,27 @@ async def update_token_count(user_id: str, language: str, token: str, count: int
 
 async def cache_exercise(exercise: dict, language: str, user_id: str, token: str):
     """
-    Cache a generated exercise for future use
+    Cache a generated exercise for future use. First stores the exercise in the exercises collection,
+    then stores a reference to it in the cache.
     """
-    exercise_doc = {
-        "exercise": exercise,
+    # Ensure _id is not in the exercise dict if it exists
+    if "_id" in exercise:
+        del exercise["_id"]
+        
+    # First store the exercise
+    exercise_result = await exercises_collection.insert_one(exercise)
+    exercise_id = str(exercise_result.inserted_id)
+
+    # Then store the reference in cache
+    cache_doc = {
+        "exercise_id": exercise_id,
         "language": language,
         "user_id": user_id,
         "token": token,
         "created_at": datetime.utcnow(),
         "used": False
     }
-    await exercise_cache.insert_one(exercise_doc)
+    await exercise_cache.insert_one(cache_doc)
 
 async def get_cached_exercise(language: str, user_id: str, token: str):
     """
@@ -198,8 +208,13 @@ async def get_cached_exercise(language: str, user_id: str, token: str):
     )
     
     if result:
-        result["_id"] = str(result["_id"])
-        return result["exercise"]
+        # Fetch the actual exercise from exercises collection
+        exercise = await exercises_collection.find_one({"_id": ObjectId(result["exercise_id"])})
+        if exercise:
+            # Convert ObjectId to string before returning
+            exercise = dict(exercise)  # Convert from MongoDB document to dict
+            exercise["_id"] = str(exercise["_id"])
+            return exercise
     return None
 
 async def count_cached_exercises(language: str, user_id: str, token: str) -> int:
