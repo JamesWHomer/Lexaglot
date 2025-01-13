@@ -30,7 +30,7 @@ class AudioTranscribeExercise(BaseModel):
 class Exercise(BaseModel):
     type: str
     language: str # The language the user is learning
-    data: Union[MatchingExercise, TranslateExercise, FillBlankExercise]
+    data: Union[MatchingExercise, TranslateExercise, FillBlankExercise, AudioTranscribeExercise]
     model_config = {"extra": "allow"}
 
 class ExerciseAttempt(BaseModel):
