@@ -11,6 +11,7 @@ from datetime import datetime
 import random 
 from generation import generate_exercise
 from recommendation import get_next_token
+from tokenbank import get_user_tokenbank, set_user_tokenbank, update_token_count
 
 @asynccontextmanager
 async def lifespan(app: FastAPI):
@@ -92,7 +93,7 @@ async def get_tokenbank(
     current_user: User = Depends(get_current_active_user)
 ) -> Dict[str, int]:
     """Get the user's token bank for a specific language"""
-    return await database.get_user_tokenbank(str(current_user.id), language)
+    return await get_user_tokenbank(str(current_user.id), language)
 
 @app.get("/next_exercise")
 async def next_exercise(
@@ -130,7 +131,7 @@ async def update_tokenbank(
     current_user: User = Depends(get_current_active_user)
 ):
     """Update the entire token bank for a specific language"""
-    success = await database.set_user_tokenbank(str(current_user.id), language, tokens)
+    success = await set_user_tokenbank(str(current_user.id), language, tokens)
     if not success:
         raise HTTPException(status_code=500, detail="Failed to update token bank")
     return {"status": "success"}
@@ -143,7 +144,7 @@ async def update_token(
     current_user: User = Depends(get_current_active_user)
 ):
     """Update the count for a specific token"""
-    success = await database.update_token_count(str(current_user.id), language, token, count)
+    success = await update_token_count(str(current_user.id), language, token, count)
     if not success:
         raise HTTPException(status_code=500, detail="Failed to update token count")
     return {"status": "success"}

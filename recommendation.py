@@ -1,4 +1,4 @@
-from database import get_user_tokenbank, set_user_tokenbank
+from tokenbank import get_user_tokenbank
 from typing import Optional
 import asyncio
 import random
