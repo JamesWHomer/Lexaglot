@@ -1,12 +1,12 @@
 from fastapi import FastAPI, Depends, HTTPException, BackgroundTasks
 from contextlib import asynccontextmanager
-from models import Exercise, ExerciseAttempt
+from models import Exercise, ExerciseAttempt, AttemptDetail
 import database
 from database import DEFAULT_CACHE_SIZE
 from auth_router import router as auth_router
 from auth import get_current_active_user
 from auth_models import User
-from typing import Dict, Any, Optional
+from typing import Dict, Any, Optional, List
 from datetime import datetime
 import random 
 from generation import generate_exercise
@@ -45,24 +45,32 @@ async def get_exercise(id: str):
 async def record_attempt(
     exercise_id: str,
     language: str,
-    time_spent_ms: int,
-    user_response: Any,
+    started_at: datetime,
+    total_time_spent_ms: int,
+    was_completed: bool,
+    attempt_history: List[Dict[str, Any]],
     background_tasks: BackgroundTasks,
     current_user: User = Depends(get_current_active_user)
 ):
     """
-    Record a user's attempt at an exercise.
-    - time_spent_ms: how long the exercise took in milliseconds
-    - user_response: the raw response data from the app (format depends on exercise type)
+    Record a user's complete attempt history for an exercise.
+    - started_at: when they first started the exercise
+    - total_time_spent_ms: total time spent across all attempts
+    - was_completed: whether they completed it successfully or skipped
+    - attempt_history: list of all attempts made before completion/skip
     """
     # Record the attempt
     attempt = ExerciseAttempt(
         user_id=str(current_user.id),
         exercise_id=exercise_id,
         language=language,
+        started_at=started_at,
         completed_at=datetime.utcnow(),
-        time_spent_ms=time_spent_ms,
-        user_response=user_response
+        was_completed=was_completed,
+        total_time_spent_ms=total_time_spent_ms,
+        attempt_history=[
+            AttemptDetail(**attempt) for attempt in attempt_history
+        ]
     )
     
     result = await database.record_attempt(attempt)
