@@ -2,6 +2,7 @@ from fastapi import FastAPI, Depends, HTTPException, BackgroundTasks
 from contextlib import asynccontextmanager
 from models import Exercise, ExerciseAttempt
 import database
+from database import DEFAULT_CACHE_SIZE
 from auth_router import router as auth_router
 from auth import get_current_active_user
 from auth_models import User
@@ -71,8 +72,8 @@ async def record_attempt(
         # Count current cached exercises
         cache_count = await database.count_cached_exercises(language, str(current_user.id), token)
         
-        # Generate new exercises if we're below target (3)
-        exercises_needed = 3 - cache_count
+        # Generate new exercises if we're below target
+        exercises_needed = DEFAULT_CACHE_SIZE - cache_count
         if exercises_needed > 0:
             for _ in range(exercises_needed):
                 background_tasks.add_task(
@@ -130,27 +131,50 @@ async def next_exercise(
     # Return the exercise from the database to ensure proper serialization
     return await database.get_exercise_by_id(exercise_dict["_id"])
 
-# @app.put("/tokenbank/{language}")
-# async def update_tokenbank(
-#     language: str,
-#     tokens: Dict[str, int],
-#     current_user: User = Depends(get_current_active_user)
-# ):
-#     """Update the entire token bank for a specific language"""
-#     success = await database.set_user_tokenbank(str(current_user.id), language, tokens)
-#     if not success:
-#         raise HTTPException(status_code=500, detail="Failed to update token bank")
-#     return {"status": "success"}
+@app.put("/tokenbank/{language}")
+async def update_tokenbank(
+    language: str,
+    tokens: Dict[str, int],
+    current_user: User = Depends(get_current_active_user)
+):
+    """Update the entire token bank for a specific language"""
+    success = await database.set_user_tokenbank(str(current_user.id), language, tokens)
+    if not success:
+        raise HTTPException(status_code=500, detail="Failed to update token bank")
+    return {"status": "success"}
 
-# @app.patch("/tokenbank/{language}/{token}")
-# async def update_token(
-#     language: str,
-#     token: str,
-#     count: int,
-#     current_user: User = Depends(get_current_active_user)
-# ):
-#     """Update the count for a specific token"""
-#     success = await database.update_token_count(str(current_user.id), language, token, count)
-#     if not success:
-#         raise HTTPException(status_code=500, detail="Failed to update token count")
-#     return {"status": "success"}
+@app.patch("/tokenbank/{language}/{token}")
+async def update_token(
+    language: str,
+    token: str,
+    count: int,
+    current_user: User = Depends(get_current_active_user)
+):
+    """Update the count for a specific token"""
+    success = await database.update_token_count(str(current_user.id), language, token, count)
+    if not success:
+        raise HTTPException(status_code=500, detail="Failed to update token count")
+    return {"status": "success"}
+
+@app.delete("/exercise-cache/{language}")
+async def clear_exercise_cache(
+    language: str,
+    current_user: User = Depends(get_current_active_user)
+):
+    """Delete all cached exercises for the current user and language"""
+    deleted_count = await database.delete_exercise_cache(language, str(current_user.id))
+    return {"deleted_count": deleted_count}
+
+@app.post("/exercise-cache/{language}/regenerate")
+async def regenerate_cache(
+    language: str,
+    current_user: User = Depends(get_current_active_user)
+):
+    """Regenerate the exercise cache for the current user and language"""
+    # Get the next token for this user and language
+    token = await get_next_token(str(current_user.id), language)
+    if not token:
+        raise HTTPException(status_code=404, detail="No tokens available for practice")
+    
+    count = await database.regenerate_exercise_cache(language, str(current_user.id), token)
+    return {"cached_exercises": count}
