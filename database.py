@@ -14,6 +14,9 @@ logger = logging.getLogger("uvicorn")
 # Load environment variables
 load_dotenv("secret.env")
 
+# Constants
+DEFAULT_CACHE_SIZE = 3  # Number of exercises to cache per user/language
+
 MONGODB_URL = os.getenv("MONGODB_URL")
 if not MONGODB_URL:
     logger.error("MONGODB_URL environment variable is not set")
@@ -247,3 +250,43 @@ async def count_cached_exercises(language: str, user_id: str, token: str) -> int
         "user_id": user_id,
         "used": False
     }) 
+
+async def delete_exercise_cache(language: str, user_id: str):
+    """
+    Delete all cached exercises for a specific user and language.
+    Also removes the exercises from the exercises collection.
+    """
+    # First get all cached exercises for this user/language
+    cached_exercises = await exercise_cache.find({
+        "language": language,
+        "user_id": user_id
+    }).to_list(length=None)
+    
+    # Delete the exercises from exercises collection
+    exercise_ids = [ObjectId(ex["exercise_id"]) for ex in cached_exercises]
+    if exercise_ids:
+        await exercises_collection.delete_many({"_id": {"$in": exercise_ids}})
+    
+    # Delete from cache
+    result = await exercise_cache.delete_many({
+        "language": language,
+        "user_id": user_id
+    })
+    
+    return result.deleted_count
+
+async def regenerate_exercise_cache(language: str, user_id: str, token: str, target_count: int = DEFAULT_CACHE_SIZE):
+    """
+    Regenerate the exercise cache for a specific user and language up to target_count.
+    First deletes existing cache, then generates new exercises.
+    """
+    # First delete existing cache
+    await delete_exercise_cache(language, user_id)
+    
+    # Generate new exercises up to target count
+    for _ in range(target_count):
+        exercise = await generate_exercise(language, token)
+        exercise_dict = exercise.model_dump()
+        await cache_exercise(exercise_dict, language, user_id, token)
+    
+    return await count_cached_exercises(language, user_id, token) 
