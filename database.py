@@ -204,12 +204,11 @@ async def cache_exercise(exercise: dict, language: str, user_id: str, token: str
     exercise_result = await exercises_collection.insert_one(exercise)
     exercise_id = str(exercise_result.inserted_id)
 
-    # Then store the reference in cache
+    # Then store the reference in cache (without token)
     cache_doc = {
         "exercise_id": exercise_id,
         "language": language,
         "user_id": user_id,
-        "token": token,
         "created_at": datetime.utcnow(),
         "used": False
     }
@@ -217,14 +216,13 @@ async def cache_exercise(exercise: dict, language: str, user_id: str, token: str
 
 async def get_cached_exercise(language: str, user_id: str, token: str):
     """
-    Get the oldest unused exercise from the cache for specific user, language and token
+    Get the oldest unused exercise from the cache for specific user and language
     """
     # Find the oldest unused exercise without marking it as used
     result = await exercise_cache.find_one(
         {
             "language": language,
             "user_id": user_id,
-            "token": token,
             "used": False
         },
         sort=[("created_at", 1)]  # Get oldest first
@@ -242,11 +240,10 @@ async def get_cached_exercise(language: str, user_id: str, token: str):
 
 async def count_cached_exercises(language: str, user_id: str, token: str) -> int:
     """
-    Count unused cached exercises for a specific user, language and token
+    Count unused cached exercises for a specific user and language
     """
     return await exercise_cache.count_documents({
         "language": language,
         "user_id": user_id,
-        "token": token,
         "used": False
     }) 
