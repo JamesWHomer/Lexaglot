@@ -215,3 +215,30 @@ async def regenerate_exercise_cache(language: str, user_id: str, token: str, tar
         await cache_exercise(exercise_dict, language, user_id, token)
     
     return await count_cached_exercises(language, user_id, token) 
+
+async def get_all_cached_exercises(language: str, user_id: str):
+    """
+    Get all unused cached exercises for a specific user and language
+    """
+    # Find all unused exercises
+    cursor = exercise_cache.find(
+        {
+            "language": language,
+            "user_id": user_id,
+            "used": False
+        },
+        sort=[("created_at", 1)]  # Get oldest first
+    )
+    
+    cache_docs = await cursor.to_list(length=None)
+    exercises = []
+    
+    # Fetch each exercise from exercises collection
+    for doc in cache_docs:
+        exercise = await exercises_collection.find_one({"_id": ObjectId(doc["exercise_id"])})
+        if exercise:
+            exercise = dict(exercise)  # Convert from MongoDB document to dict
+            exercise["_id"] = str(exercise["_id"])
+            exercises.append(exercise)
+    
+    return exercises 
