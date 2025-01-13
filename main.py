@@ -87,13 +87,13 @@ async def record_attempt(
     
     return result
 
-@app.get("/user-attempts/{language}")
-async def get_user_attempts(
-    language: str,
-    current_user: User = Depends(get_current_active_user)
-):
-    """Get all of a user's exercise attempts for a specific language"""
-    return await database.get_user_attempts(str(current_user.id), language)
+# @app.get("/user-attempts/{language}")
+# async def get_user_attempts(
+#     language: str,
+#     current_user: User = Depends(get_current_active_user)
+# ):
+#     """Get all of a user's exercise attempts for a specific language"""
+#     return await database.get_user_attempts(str(current_user.id), language)
 
 @app.get("/tokenbank/{language}")
 async def get_tokenbank(
