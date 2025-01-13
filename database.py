@@ -2,6 +2,7 @@ from motor.motor_asyncio import AsyncIOMotorClient
 from fastapi import HTTPException
 from models import Exercise, ExerciseAttempt
 from auth_models import UserInDB, RefreshToken
+from generation import generate_exercise
 import logging
 from bson import ObjectId
 import os
@@ -81,6 +82,18 @@ async def create_user(user: UserInDB):
     result = await users_collection.insert_one(user_dict)
     user_dict["_id"] = str(result.inserted_id)
     return UserInDB.model_validate(user_dict)
+
+async def replenish_cache(language: str, user_id: str, token: str):
+    """
+    Replenish the cache up to DEFAULT_CACHE_SIZE if needed
+    """
+    cache_count = await count_cached_exercises(language, user_id, token)
+    exercises_needed = DEFAULT_CACHE_SIZE - cache_count
+    
+    for _ in range(exercises_needed):
+        exercise = await generate_exercise(language, token)
+        exercise_dict = exercise.model_dump()
+        await cache_exercise(exercise_dict, language, user_id, token)
 
 async def record_attempt(attempt: ExerciseAttempt):
     # Check if attempt already exists for this exercise and user

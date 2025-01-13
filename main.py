@@ -69,20 +69,12 @@ async def record_attempt(
     # Get the current token for replenishment
     token = await get_next_token(str(current_user.id), language)
     if token:
-        # Count current cached exercises
-        cache_count = await database.count_cached_exercises(language, str(current_user.id), token)
-        
-        # Generate new exercises if we're below target
-        exercises_needed = DEFAULT_CACHE_SIZE - cache_count
-        if exercises_needed > 0:
-            for _ in range(exercises_needed):
-                background_tasks.add_task(
-                    database.cache_exercise,
-                    (await generate_exercise(language, token)).model_dump(),
-                    language,
-                    str(current_user.id),
-                    token
-                )
+        background_tasks.add_task(
+            database.replenish_cache,
+            language,
+            str(current_user.id),
+            token
+        )
     
     return result
 
