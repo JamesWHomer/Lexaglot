@@ -103,53 +103,53 @@ async def get_tokenbank(
     """Get the user's token bank for a specific language"""
     return await get_user_tokenbank(str(current_user.id), language)
 
-@app.put("/tokenbank/{language}")
-async def update_tokenbank(
-    language: str,
-    tokens: Dict[str, int],
-    current_user: User = Depends(get_current_active_user)
-):
-    """Update the entire token bank for a specific language"""
-    success = await set_user_tokenbank(str(current_user.id), language, tokens)
-    if not success:
-        raise HTTPException(status_code=500, detail="Failed to update token bank")
-    return {"status": "success"}
+# @app.put("/tokenbank/{language}")
+# async def update_tokenbank(
+#     language: str,
+#     tokens: Dict[str, int],
+#     current_user: User = Depends(get_current_active_user)
+# ):
+#     """Update the entire token bank for a specific language"""
+#     success = await set_user_tokenbank(str(current_user.id), language, tokens)
+#     if not success:
+#         raise HTTPException(status_code=500, detail="Failed to update token bank")
+#     return {"status": "success"}
 
-@app.patch("/tokenbank/{language}/{token}")
-async def update_token(
-    language: str,
-    token: str,
-    count: int,
-    current_user: User = Depends(get_current_active_user)
-):
-    """Update the count for a specific token"""
-    success = await update_token_count(str(current_user.id), language, token, count)
-    if not success:
-        raise HTTPException(status_code=500, detail="Failed to update token count")
-    return {"status": "success"}
+# @app.patch("/tokenbank/{language}/{token}")
+# async def update_token(
+#     language: str,
+#     token: str,
+#     count: int,
+#     current_user: User = Depends(get_current_active_user)
+# ):
+#     """Update the count for a specific token"""
+#     success = await update_token_count(str(current_user.id), language, token, count)
+#     if not success:
+#         raise HTTPException(status_code=500, detail="Failed to update token count")
+#     return {"status": "success"}
 
-@app.delete("/exercise-cache/{language}")
-async def clear_exercise_cache(
-    language: str,
-    current_user: User = Depends(get_current_active_user)
-):
-    """Delete all cached exercises for the current user and language"""
-    deleted_count = await database.delete_exercise_cache(language, str(current_user.id))
-    return {"deleted_count": deleted_count}
+# @app.delete("/exercise-cache/{language}")
+# async def clear_exercise_cache(
+#     language: str,
+#     current_user: User = Depends(get_current_active_user)
+# ):
+#     """Delete all cached exercises for the current user and language"""
+#     deleted_count = await database.delete_exercise_cache(language, str(current_user.id))
+#     return {"deleted_count": deleted_count}
 
-@app.post("/exercise-cache/{language}/regenerate")
-async def regenerate_cache(
-    language: str,
-    current_user: User = Depends(get_current_active_user)
-):
-    """Regenerate the exercise cache for the current user and language"""
-    # Get the next token for this user and language
-    token = await get_next_token(str(current_user.id), language)
-    if not token:
-        raise HTTPException(status_code=404, detail="No tokens available for practice")
+# @app.post("/exercise-cache/{language}/regenerate")
+# async def regenerate_cache(
+#     language: str,
+#     current_user: User = Depends(get_current_active_user)
+# ):
+#     """Regenerate the exercise cache for the current user and language"""
+#     # Get the next token for this user and language
+#     token = await get_next_token(str(current_user.id), language)
+#     if not token:
+#         raise HTTPException(status_code=404, detail="No tokens available for practice")
     
-    count = await database.regenerate_exercise_cache(language, str(current_user.id), token)
-    return {"cached_exercises": count}
+#     count = await database.regenerate_exercise_cache(language, str(current_user.id), token)
+#     return {"cached_exercises": count}
 
 @app.get("/cached-exercises/{language}")
 async def get_cached_exercises(
