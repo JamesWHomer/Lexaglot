@@ -80,7 +80,32 @@ async def create_user(user: UserInDB):
     return UserInDB.model_validate(user_dict)
 
 async def record_attempt(attempt: ExerciseAttempt):
+    # Check if attempt already exists for this exercise and user
+    existing_attempt = await attempts_collection.find_one({
+        "exercise_id": attempt.exercise_id,
+        "user_id": attempt.user_id
+    })
+    
+    if existing_attempt:
+        raise HTTPException(
+            status_code=400,
+            detail="An attempt for this exercise has already been recorded"
+        )
+    
     attempt_dict = attempt.model_dump()
+    
+    # Mark the exercise as used in the cache
+    await exercise_cache.update_one(
+        {
+            "exercise_id": attempt.exercise_id,
+            "user_id": attempt.user_id,
+            "language": attempt.language,
+            "used": False
+        },
+        {"$set": {"used": True}}
+    )
+    
+    # Record the attempt
     result = await attempts_collection.insert_one(attempt_dict)
     attempt_dict["_id"] = str(result.inserted_id)
     return attempt_dict
@@ -194,17 +219,15 @@ async def get_cached_exercise(language: str, user_id: str, token: str):
     """
     Get the oldest unused exercise from the cache for specific user, language and token
     """
-    # Find and mark the oldest unused exercise as used atomically
-    result = await exercise_cache.find_one_and_update(
+    # Find the oldest unused exercise without marking it as used
+    result = await exercise_cache.find_one(
         {
             "language": language,
             "user_id": user_id,
             "token": token,
             "used": False
         },
-        {"$set": {"used": True}},
-        sort=[("created_at", 1)],  # Get oldest first
-        return_document=True
+        sort=[("created_at", 1)]  # Get oldest first
     )
     
     if result:
