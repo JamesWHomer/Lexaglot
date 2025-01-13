@@ -142,30 +142,6 @@ async def cache_exercise(exercise: dict, language: str, user_id: str, token: str
     }
     await exercise_cache.insert_one(cache_doc)
 
-async def get_cached_exercise(language: str, user_id: str, token: str):
-    """
-    Get the oldest unused exercise from the cache for specific user and language
-    """
-    # Find the oldest unused exercise without marking it as used
-    result = await exercise_cache.find_one(
-        {
-            "language": language,
-            "user_id": user_id,
-            "used": False
-        },
-        sort=[("created_at", 1)]  # Get oldest first
-    )
-    
-    if result:
-        # Fetch the actual exercise from exercises collection
-        exercise = await exercises_collection.find_one({"_id": ObjectId(result["exercise_id"])})
-        if exercise:
-            # Convert ObjectId to string before returning
-            exercise = dict(exercise)  # Convert from MongoDB document to dict
-            exercise["_id"] = str(exercise["_id"])
-            return exercise
-    return None
-
 async def count_cached_exercises(language: str, user_id: str, token: str) -> int:
     """
     Count unused cached exercises for a specific user and language

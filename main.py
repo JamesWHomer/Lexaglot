@@ -95,35 +95,6 @@ async def get_tokenbank(
     """Get the user's token bank for a specific language"""
     return await get_user_tokenbank(str(current_user.id), language)
 
-@app.get("/next_exercise")
-async def next_exercise(
-    language: str,
-    current_user: User = Depends(get_current_active_user)
-): 
-    # Get the next token for this user and language
-    token = await get_next_token(str(current_user.id), language)
-    if not token:
-        raise HTTPException(status_code=404, detail="No tokens available for practice")
-    
-    # Try to get a cached exercise
-    cached_exercise = await database.get_cached_exercise(language, str(current_user.id), token)
-    if cached_exercise:
-        return cached_exercise
-        
-    # If no cached exercise, generate one and cache it
-    exercise = await generate_exercise(language, token)
-    exercise_dict = exercise.model_dump(by_alias=True)
-    
-    await database.cache_exercise(
-        exercise_dict,
-        language,
-        str(current_user.id),
-        token
-    )
-    
-    # Return the exercise from the database to ensure proper serialization
-    return await database.get_exercise_by_id(exercise_dict["_id"])
-
 @app.put("/tokenbank/{language}")
 async def update_tokenbank(
     language: str,
