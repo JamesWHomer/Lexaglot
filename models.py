@@ -33,11 +33,19 @@ class Exercise(BaseModel):
     data: Union[MatchingExercise, TranslateExercise, FillBlankExercise, AudioTranscribeExercise]
     model_config = {"extra": "allow"}
 
+class AttemptDetail(BaseModel):
+    timestamp: datetime
+    time_spent_ms: int
+    response: Any  # The actual response they gave
+    model_config = {"extra": "allow"}
+
 class ExerciseAttempt(BaseModel):
     user_id: str
     exercise_id: str
     language: str
-    completed_at: datetime
-    time_spent_ms: int  # How long the exercise took in milliseconds
-    user_response: Any  # Store whatever response format the app sends
+    started_at: datetime  # When they first started the exercise
+    completed_at: datetime  # When they either completed or skipped
+    was_completed: bool  # True if completed, False if skipped
+    total_time_spent_ms: int  # Total time across all attempts
+    attempt_history: List[AttemptDetail]  # All attempts made before completion/skip
     model_config = {"extra": "allow"}
