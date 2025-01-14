@@ -21,13 +21,13 @@ async def set_user_tokenbank(user_id: str, language: str, tokens: Dict[str, int]
     )
     return result.acknowledged 
 
-async def update_token_count(user_id: str, language: str, token: str, count: int) -> bool:
+async def update_token_value(user_id: str, language: str, token: str, value: int) -> bool:
     """
     Update or set the count for a specific token in user's tokenbank
     """
     result = await tokenbank_collection.update_one(
         {"user_id": user_id, "language": language},
-        {"$set": {f"tokens.{token}": count}},
+        {"$set": {f"tokens.{token}": value}},
         upsert=True
     )
     return result.acknowledged 

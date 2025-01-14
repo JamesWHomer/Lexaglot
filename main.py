@@ -11,7 +11,7 @@ from datetime import datetime
 import random 
 from generation import generate_exercise
 from recommendation import get_next_token
-from tokenbank import get_user_tokenbank, set_user_tokenbank, update_token_count
+from tokenbank import get_user_tokenbank
 from fastapi.responses import JSONResponse
 
 @asynccontextmanager
