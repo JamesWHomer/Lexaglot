@@ -1,6 +1,6 @@
 from fastapi import FastAPI, Depends, HTTPException, BackgroundTasks
 from contextlib import asynccontextmanager
-from models import Exercise, ExerciseAttempt, AttemptDetail
+from models import Exercise, ExerciseAttempt, AttemptDetail, TextInfo, TextSource
 import database
 from database import DEFAULT_CACHE_SIZE
 from auth_router import router as auth_router
@@ -194,3 +194,35 @@ async def get_cached_exercises(
             )
     
     return exercises
+
+# Text management endpoints
+@app.post("/text/info")
+async def create_text_info(text_info: TextInfo):
+    """Create a new text info entry"""
+    return await database.create_text_info(text_info)
+
+@app.post("/text/source")
+async def create_text_source(text_source: TextSource):
+    """Create a new text source entry"""
+    return await database.create_text_source(text_source)
+
+@app.get("/text/info/{text_info_id}")
+async def get_text_info(text_info_id: str):
+    """Get text info by ID"""
+    text_info = await database.get_text_info(text_info_id)
+    if not text_info:
+        raise HTTPException(status_code=404, detail="Text info not found")
+    return text_info
+
+@app.get("/text/source/{text_info_id}")
+async def get_text_source(text_info_id: str):
+    """Get text source by text_info_id"""
+    text_source = await database.get_text_source(text_info_id)
+    if not text_source:
+        raise HTTPException(status_code=404, detail="Text source not found")
+    return text_source
+
+@app.get("/texts")
+async def list_texts(language: Optional[str] = None, type: Optional[str] = None):
+    """List all texts, optionally filtered by language and/or type"""
+    return await database.list_texts(language, type)

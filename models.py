@@ -49,3 +49,20 @@ class ExerciseAttempt(BaseModel):
     total_time_spent_ms: int  # Total time across all attempts
     attempt_history: List[AttemptDetail]  # All attempts made before completion/skip
     model_config = {"extra": "allow"}
+
+class TextInfo(BaseModel):
+    """Metadata about a text source for language learning"""
+    language: str
+    name: str
+    author: Optional[str]
+    length: int  # Number of characters in the text
+    source_available: bool  # Whether the source text can be displayed
+    tokens: List[str]  # List of unique tokens in the text
+    type: str  # e.g., "novel", "movie_script", "article", etc.
+    model_config = {"extra": "allow"}
+
+class TextSource(BaseModel):
+    """The actual text content"""
+    text_info_id: str  # Reference to the TextInfo document
+    content: str  # The full text content
+    model_config = {"extra": "allow"}

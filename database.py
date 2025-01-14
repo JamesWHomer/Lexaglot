@@ -1,19 +1,81 @@
 from fastapi import HTTPException
-from models import Exercise, ExerciseAttempt
+from models import Exercise, ExerciseAttempt, TextInfo, TextSource
 from auth_models import UserInDB, RefreshToken
 from generation import generate_exercise
 from bson import ObjectId
 from datetime import datetime
-from typing import Dict
+from typing import Dict, Optional, List
 from db import (
     exercises_collection, users_collection, attempts_collection,
     refresh_tokens_collection, exercise_cache,
+    text_info_collection, text_source_collection,
     connect as connect_to_mongo,
     close as close_mongo_connection
 )
 
 # Constants
 DEFAULT_CACHE_SIZE = 3  # Number of exercises to cache per user/language
+
+async def create_text_info(text_info: TextInfo) -> dict:
+    """Create a new text info entry"""
+    text_info_dict = text_info.model_dump()
+    result = await text_info_collection.insert_one(text_info_dict)
+    text_info_dict["_id"] = str(result.inserted_id)
+    return text_info_dict
+
+async def create_text_source(text_source: TextSource) -> dict:
+    """Create a new text source entry"""
+    # Verify text_info exists
+    try:
+        text_info = await text_info_collection.find_one({"_id": ObjectId(text_source.text_info_id)})
+        if not text_info:
+            raise HTTPException(status_code=404, detail="Text info not found")
+    except:
+        raise HTTPException(status_code=400, detail="Invalid text_info_id format")
+    
+    text_source_dict = text_source.model_dump()
+    result = await text_source_collection.insert_one(text_source_dict)
+    text_source_dict["_id"] = str(result.inserted_id)
+    return text_source_dict
+
+async def get_text_info(text_info_id: str) -> Optional[dict]:
+    """Get text info by ID"""
+    try:
+        text_info = await text_info_collection.find_one({"_id": ObjectId(text_info_id)})
+        if text_info:
+            text_info["_id"] = str(text_info["_id"])
+            return text_info
+        return None
+    except:
+        raise HTTPException(status_code=400, detail="Invalid ID format")
+
+async def get_text_source(text_info_id: str) -> Optional[dict]:
+    """Get text source by text_info_id"""
+    try:
+        text_source = await text_source_collection.find_one({"text_info_id": text_info_id})
+        if text_source:
+            text_source["_id"] = str(text_source["_id"])
+            return text_source
+        return None
+    except:
+        raise HTTPException(status_code=400, detail="Invalid ID format")
+
+async def list_texts(language: Optional[str] = None, type: Optional[str] = None) -> List[dict]:
+    """List all texts, optionally filtered by language and/or type"""
+    query = {}
+    if language:
+        query["language"] = language
+    if type:
+        query["type"] = type
+        
+    cursor = text_info_collection.find(query)
+    texts = await cursor.to_list(length=None)
+    
+    # Convert ObjectIds to strings
+    for text in texts:
+        text["_id"] = str(text["_id"])
+    
+    return texts
 
 async def create_exercise(exercise: Exercise):
     exercise_dict = {

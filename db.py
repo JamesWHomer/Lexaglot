@@ -23,6 +23,8 @@ attempts_collection = db.attempts
 refresh_tokens_collection = db.refresh_tokens
 tokenbank_collection = db.tokenbank
 exercise_cache = db.exercise_cache
+text_info_collection = db.text_info
+text_source_collection = db.text_source
 
 async def connect():
     try:
