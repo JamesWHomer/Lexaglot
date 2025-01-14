@@ -16,7 +16,7 @@ def get_language_name(iso_code: str) -> Optional[str]:
         return None
 
 # Add custom mappings for languages that might not be in pycountry
-CUSTOM_LANGUAGE_NAMES = {
+CUSTOM_LANGUAGE_NAMES = {   
     'klg': 'Klingon',    # Star Trek - Has official dictionary, institute, and many speakers
     'qya': 'Quenya',     # Tolkien's High Elvish - Extensively documented by Tolkien himself
     'sjn': 'Sindarin',   # Tolkien's Elvish - Well documented with substantial vocabulary
