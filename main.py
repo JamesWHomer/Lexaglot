@@ -12,6 +12,7 @@ import random
 from generation import generate_exercise
 from recommendation import get_next_token
 from tokenbank import get_user_tokenbank, set_user_tokenbank, update_token_count
+from fastapi.responses import JSONResponse
 
 @asynccontextmanager
 async def lifespan(app: FastAPI):
@@ -161,23 +162,27 @@ async def get_cached_exercises(
     # Get all cached exercises
     exercises = await database.get_all_cached_exercises(language, str(current_user.id))
     
-    # If we have no exercises, return a message
+    # If we have no exercises, trigger generation and return a wait message
     if not exercises:
-        # Get the next token for replenishment
         token = await get_next_token(str(current_user.id), language)
-        if token:
-            background_tasks.add_task(
-                database.replenish_cache,
-                language,
-                str(current_user.id),
-                token
+        if not token:
+            raise HTTPException(
+                status_code=404,
+                detail="No tokens available for practice"
             )
-        raise HTTPException(
-            status_code=404,
-            detail="No exercises currently cached. Please try again in a few moments."
+            
+        background_tasks.add_task(
+            database.replenish_cache,
+            language,
+            str(current_user.id),
+            token
+        )
+        return JSONResponse(
+            status_code=202,
+            content={"detail": "Exercises are being generated. Please try again in a few moments."}
         )
     
-    # If we have fewer than target, trigger background replenishment
+    # If we have some exercises but fewer than target, trigger background replenishment
     elif len(exercises) < DEFAULT_CACHE_SIZE:
         token = await get_next_token(str(current_user.id), language)
         if token:

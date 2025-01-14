@@ -55,13 +55,16 @@ async def replenish_cache(language: str, user_id: str, token: str):
     """
     Replenish the cache up to DEFAULT_CACHE_SIZE if needed
     """
-    cache_count = await count_cached_exercises(language, user_id, token)
-    exercises_needed = DEFAULT_CACHE_SIZE - cache_count
-    
-    for _ in range(exercises_needed):
-        exercise = await generate_exercise(language, token)
-        exercise_dict = exercise.model_dump()
-        await cache_exercise(exercise_dict, language, user_id, token)
+    try:
+        cache_count = await count_cached_exercises(language, user_id, token)
+        exercises_needed = DEFAULT_CACHE_SIZE - cache_count
+        
+        for _ in range(exercises_needed):
+            exercise = await generate_exercise(language, token)
+            exercise_dict = exercise.model_dump()
+            await cache_exercise(exercise_dict, language, user_id, token)
+    except Exception as e:
+        raise
 
 async def record_attempt(attempt: ExerciseAttempt):
     # Check if attempt already exists for this exercise and user
