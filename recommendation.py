@@ -11,5 +11,6 @@ async def get_next_token(user_id: Optional[str], language: str):
     return lowest_token[0]
 
 async def get_next_exercise_type(user_id: Optional[str], language: str):
-    exercise_types = ["matching", "translate", "fill_blank", "audio_transcribe"]
+    # exercise_types = ["matching", "translate", "fill_blank", "audio_transcribe"]
+    exercise_types = ["matching", "translate"]
     return random.choice(exercise_types)
