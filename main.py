@@ -154,18 +154,33 @@ async def get_tokenbank(
 @app.get("/cached-exercises/{language}")
 async def get_cached_exercises(
     language: str,
+    background_tasks: BackgroundTasks,
     current_user: User = Depends(get_current_active_user)
 ):
     """Get all unused cached exercises for the current user and language"""
     # Get all cached exercises
     exercises = await database.get_all_cached_exercises(language, str(current_user.id))
     
-    # If we have fewer than target, trigger background replenishment
-    if len(exercises) < DEFAULT_CACHE_SIZE:
+    # If we have no exercises, return a message
+    if not exercises:
         # Get the next token for replenishment
         token = await get_next_token(str(current_user.id), language)
         if token:
-            background_tasks = BackgroundTasks()
+            background_tasks.add_task(
+                database.replenish_cache,
+                language,
+                str(current_user.id),
+                token
+            )
+        raise HTTPException(
+            status_code=404,
+            detail="No exercises currently cached. Please try again in a few moments."
+        )
+    
+    # If we have fewer than target, trigger background replenishment
+    elif len(exercises) < DEFAULT_CACHE_SIZE:
+        token = await get_next_token(str(current_user.id), language)
+        if token:
             background_tasks.add_task(
                 database.replenish_cache,
                 language,
