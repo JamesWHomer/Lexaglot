@@ -116,7 +116,7 @@ async def get_tokenbank(
 #         raise HTTPException(status_code=500, detail="Failed to update token bank")
 #     return {"status": "success"}
 
-# @app.patch("/tokenbank/{language}/{token}")
+# @app.patch("/tokenba nk/{language}/{token}")
 # async def update_token(
 #     language: str,
 #     token: str,
